@@ -1215,7 +1215,7 @@ public:
 
         ColumnWithTypeAndName minus_res{type, {}};
 
-        auto func = FunctionFactory::instance().get(std::string("L") + FuncLabel::name + "Norm", context);
+        auto func = FunctionFactory::instance().get(std::string("L") + FuncLabel::name + "Distance", context);
         if constexpr (FuncLabel::name[0] == 'p')
             return func->build({minus_res, arguments[2]})->getResultType();
         else
@@ -1230,7 +1230,7 @@ public:
 
         ColumnWithTypeAndName minus_res{column, type, {}};
 
-        auto func = FunctionFactory::instance().get(std::string("L") + FuncLabel::name + "Norm", context);
+        auto func = FunctionFactory::instance().get(std::string("L") + FuncLabel::name + "Distance", context);
         if constexpr (FuncLabel::name[0] == 'p')
         {
             auto func_elem = func->build({minus_res, arguments[2]});
