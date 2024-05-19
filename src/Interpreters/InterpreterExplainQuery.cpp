@@ -550,7 +550,7 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                 auto & pipeline = res.pipeline;
                 const auto & processors = pipeline.getProcessors();
 
-                PullingPipelineExecutor pulling_executor(pipeline);
+                PullingPipelineExecutor pulling_executor(pipeline, true);
                 std::vector<Block> blocks;
                 while (true)
                 {

@@ -23,7 +23,7 @@ using PipelineExecutorPtr = std::shared_ptr<PipelineExecutor>;
 class PullingPipelineExecutor
 {
 public:
-    explicit PullingPipelineExecutor(QueryPipeline & pipeline_);
+    explicit PullingPipelineExecutor(QueryPipeline & pipeline_, bool profile_processors=false);
     ~PullingPipelineExecutor();
 
     /// Get structure of returned block or chunk.
@@ -53,6 +53,7 @@ private:
     QueryPipeline & pipeline;
     std::shared_ptr<PullingOutputFormat> pulling_format;
     PipelineExecutorPtr executor;
+    bool profile_processors = false;
 };
 
 }

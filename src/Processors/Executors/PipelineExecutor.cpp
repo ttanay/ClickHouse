@@ -34,12 +34,12 @@ namespace ErrorCodes
 }
 
 
-PipelineExecutor::PipelineExecutor(std::shared_ptr<Processors> & processors, QueryStatusPtr elem)
+PipelineExecutor::PipelineExecutor(std::shared_ptr<Processors> & processors, QueryStatusPtr elem, bool profile_processors_)
     : process_list_element(std::move(elem))
 {
     if (process_list_element)
     {
-        profile_processors = process_list_element->getContext()->getSettingsRef().log_processors_profiles;
+        profile_processors = profile_processors_ || process_list_element->getContext()->getSettingsRef().log_processors_profiles;
         trace_processors = process_list_element->getContext()->getSettingsRef().opentelemetry_trace_processors;
     }
     try

@@ -14,7 +14,7 @@ namespace ErrorCodes
     extern const int LOGICAL_ERROR;
 }
 
-PullingPipelineExecutor::PullingPipelineExecutor(QueryPipeline & pipeline_) : pipeline(pipeline_)
+PullingPipelineExecutor::PullingPipelineExecutor(QueryPipeline & pipeline_, bool profile_processors_) : pipeline(pipeline_), profile_processors(profile_processors_)
 {
     if (!pipeline.pulling())
         throw Exception(ErrorCodes::LOGICAL_ERROR, "Pipeline for PullingPipelineExecutor must be pulling");
@@ -44,7 +44,7 @@ bool PullingPipelineExecutor::pull(Chunk & chunk)
 {
     if (!executor)
     {
-        executor = std::make_shared<PipelineExecutor>(pipeline.processors, pipeline.process_list_element);
+        executor = std::make_shared<PipelineExecutor>(pipeline.processors, pipeline.process_list_element, profile_processors);
         executor->setReadProgressCallback(pipeline.getReadProgressCallback());
     }
 

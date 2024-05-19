@@ -35,7 +35,7 @@ public:
     /// During pipeline execution new processors can appear. They will be added to existing set.
     ///
     /// Explicit graph representation is built in constructor. Throws if graph is not correct.
-    explicit PipelineExecutor(std::shared_ptr<Processors> & processors, QueryStatusPtr elem);
+    explicit PipelineExecutor(std::shared_ptr<Processors> & processors, QueryStatusPtr elem, bool profile_processors_=false);
     ~PipelineExecutor();
 
     /// Execute pipeline in multiple threads. Must be called once.
@@ -77,7 +77,7 @@ private:
 
     /// Flag that checks that initializeExecution was called.
     bool is_execution_initialized = false;
-    /// system.processors_profile_log
+    /// system.processors_profile_log or overriden explicitly
     bool profile_processors = false;
     /// system.opentelemetry_span_log
     bool trace_processors = false;
