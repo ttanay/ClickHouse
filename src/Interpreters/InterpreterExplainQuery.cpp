@@ -1,32 +1,34 @@
-#include <Interpreters/InterpreterFactory.h>
 #include <Interpreters/InterpreterExplainQuery.h>
+#include <Interpreters/InterpreterFactory.h>
 
-#include <QueryPipeline/BlockIO.h>
-#include <QueryPipeline/QueryPipelineBuilder.h>
-#include <Processors/Sources/SourceFromSingleChunk.h>
 #include <DataTypes/DataTypeString.h>
+#include <Formats/FormatFactory.h>
+#include <Interpreters/Context.h>
 #include <Interpreters/InDepthNodeVisitor.h>
-#include <Interpreters/InterpreterSelectWithUnionQuery.h>
+#include <Interpreters/InterpreterInsertQuery.h>
 #include <Interpreters/InterpreterSelectQuery.h>
 #include <Interpreters/InterpreterSelectQueryAnalyzer.h>
-#include <Interpreters/InterpreterInsertQuery.h>
-#include <Interpreters/Context.h>
-#include <Interpreters/TableOverrideUtils.h>
+#include <Interpreters/InterpreterSelectWithUnionQuery.h>
 #include <Interpreters/MergeTreeTransaction.h>
-#include <Formats/FormatFactory.h>
-#include <Parsers/DumpASTNode.h>
-#include <Parsers/queryToString.h>
+#include <Interpreters/TableOverrideUtils.h>
 #include <Parsers/ASTExplainQuery.h>
 #include <Parsers/ASTFunction.h>
 #include <Parsers/ASTSelectQuery.h>
 #include <Parsers/ASTSelectWithUnionQuery.h>
 #include <Parsers/ASTSetQuery.h>
+#include <Parsers/DumpASTNode.h>
+#include <Parsers/queryToString.h>
+#include <Processors/Sources/SourceFromSingleChunk.h>
+#include <QueryPipeline/BlockIO.h>
 
-#include <Storages/StorageView.h>
-#include <Processors/QueryPlan/QueryPlan.h>
-#include <Processors/QueryPlan/Optimizations/QueryPlanOptimizationSettings.h>
+#include <Processors/Executors/PullingPipelineExecutor.h>
+#include <QueryPipeline/QueryPipelineBuilder.h>
+
 #include <Processors/QueryPlan/BuildQueryPipelineSettings.h>
+#include <Processors/QueryPlan/Optimizations/QueryPlanOptimizationSettings.h>
+#include <Processors/QueryPlan/QueryPlan.h>
 #include <QueryPipeline/printPipeline.h>
+#include <Storages/StorageView.h>
 
 #include <Common/JSONBuilder.h>
 
@@ -38,50 +40,47 @@ namespace DB
 
 namespace ErrorCodes
 {
-    extern const int INCORRECT_QUERY;
-    extern const int INVALID_SETTING_VALUE;
-    extern const int UNKNOWN_SETTING;
-    extern const int LOGICAL_ERROR;
-    extern const int NOT_IMPLEMENTED;
+extern const int INCORRECT_QUERY;
+extern const int INVALID_SETTING_VALUE;
+extern const int UNKNOWN_SETTING;
+extern const int LOGICAL_ERROR;
+extern const int NOT_IMPLEMENTED;
 }
 
 namespace
 {
-    struct ExplainAnalyzedSyntaxMatcher
+struct ExplainAnalyzedSyntaxMatcher
+{
+    struct Data : public WithContext
     {
-        struct Data : public WithContext
-        {
-            explicit Data(ContextPtr context_) : WithContext(context_) {}
-        };
-
-        static bool needChildVisit(ASTPtr & node, ASTPtr &)
-        {
-            return !node->as<ASTSelectQuery>();
-        }
-
-        static void visit(ASTPtr & ast, Data & data)
-        {
-            if (auto * select = ast->as<ASTSelectQuery>())
-                visit(*select, ast, data);
-        }
-
-        static void visit(ASTSelectQuery & select, ASTPtr & node, Data & data)
-        {
-            /// we need to read statistic when `allow_statistic_optimize` is enabled.
-            bool only_analyze = !data.getContext()->getSettings().allow_statistic_optimize;
-            InterpreterSelectQuery interpreter(
-                node, data.getContext(), SelectQueryOptions(QueryProcessingStage::FetchColumns).analyze(only_analyze).modify());
-
-            const SelectQueryInfo & query_info = interpreter.getQueryInfo();
-            if (query_info.view_query)
-            {
-                ASTPtr tmp;
-                StorageView::replaceWithSubquery(select, query_info.view_query->clone(), tmp, query_info.is_parameterized_view);
-            }
-        }
+        explicit Data(ContextPtr context_) : WithContext(context_) { }
     };
 
-    using ExplainAnalyzedSyntaxVisitor = InDepthNodeVisitor<ExplainAnalyzedSyntaxMatcher, true>;
+    static bool needChildVisit(ASTPtr & node, ASTPtr &) { return !node->as<ASTSelectQuery>(); }
+
+    static void visit(ASTPtr & ast, Data & data)
+    {
+        if (auto * select = ast->as<ASTSelectQuery>())
+            visit(*select, ast, data);
+    }
+
+    static void visit(ASTSelectQuery & select, ASTPtr & node, Data & data)
+    {
+        /// we need to read statistic when `allow_statistic_optimize` is enabled.
+        bool only_analyze = !data.getContext()->getSettings().allow_statistic_optimize;
+        InterpreterSelectQuery interpreter(
+            node, data.getContext(), SelectQueryOptions(QueryProcessingStage::FetchColumns).analyze(only_analyze).modify());
+
+        const SelectQueryInfo & query_info = interpreter.getQueryInfo();
+        if (query_info.view_query)
+        {
+            ASTPtr tmp;
+            StorageView::replaceWithSubquery(select, query_info.view_query->clone(), tmp, query_info.is_parameterized_view);
+        }
+    }
+};
+
+using ExplainAnalyzedSyntaxVisitor = InDepthNodeVisitor<ExplainAnalyzedSyntaxMatcher, true>;
 
 }
 
@@ -532,8 +531,44 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                 throw Exception(ErrorCodes::INCORRECT_QUERY, "Only SELECT and INSERT is supported for EXPLAIN PIPELINE query");
             break;
         }
-        case ASTExplainQuery::QueryEstimates:
-        {
+        case ASTExplainQuery::QueryAnalysis: {
+            if (dynamic_cast<const ASTSelectWithUnionQuery *>(ast.getExplainedQuery().get()))
+            {
+                BlockIO res;
+                // Build QueryPlan
+                if (getContext()->getSettingsRef().allow_experimental_analyzer)
+                {
+                    InterpreterSelectQueryAnalyzer interpreter(ast.getExplainedQuery(), getContext(), options);
+                    res = interpreter.execute();
+                }
+                else
+                {
+                    InterpreterSelectWithUnionQuery interpreter(ast.getExplainedQuery(), getContext(), options);
+                    res = interpreter.execute();
+                }
+
+                auto & pipeline = res.pipeline;
+                const auto & processors = pipeline.getProcessors();
+
+                PullingPipelineExecutor pulling_executor(pipeline);
+                std::vector<Block> blocks;
+                while (true)
+                {
+                    Block block;
+                    if (pulling_executor.pull(block))
+                        blocks.push_back(std::move(block));
+                    else
+                        break;
+                }
+
+                printPipeline(processors, buf, true);
+                // TODO: Add support for text version of the query
+            }
+            else
+                throw Exception(ErrorCodes::INCORRECT_QUERY, "Only SELECT is supported for EXPLAIN ANALYZE query");
+            break;
+        }
+        case ASTExplainQuery::QueryEstimates: {
             if (!dynamic_cast<const ASTSelectWithUnionQuery *>(ast.getExplainedQuery().get()))
                 throw Exception(ErrorCodes::INCORRECT_QUERY, "Only SELECT is supported for EXPLAIN ESTIMATE query");
 

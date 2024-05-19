@@ -431,7 +431,7 @@ String PipelineExecutor::dumpPipeline() const
         }
     }
 
-    std::vector<IProcessor::Status> statuses;
+    Statuses statuses;
     std::vector<IProcessor *> proc_list;
     statuses.reserve(graph->nodes.size());
     proc_list.reserve(graph->nodes.size());
