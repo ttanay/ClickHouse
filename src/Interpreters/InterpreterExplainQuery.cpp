@@ -23,6 +23,7 @@
 #include <Parsers/ASTSetQuery.h>
 
 #include <Storages/StorageView.h>
+#include <Processors/Executors/PullingPipelineExecutor.h>
 #include <Processors/QueryPlan/QueryPlan.h>
 #include <Processors/QueryPlan/Optimizations/QueryPlanOptimizationSettings.h>
 #include <Processors/QueryPlan/BuildQueryPipelineSettings.h>
@@ -612,6 +613,37 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
             }
 
             break;
+        }
+        case ASTExplainQuery::ExecutionAnalysis:
+        {
+            if(dynamic_cast<const ASTSelectWithUnionQuery *>(ast.getExplainedQuery().get())) {
+                BlockIO res;
+                //Build Query Plan
+                if(getContext()->getSettingsRef().allow_experimental_analyzer)
+                {
+                    InterpreterSelectQueryAnalyzer interpreter(ast.getExplainedQuery(), getContext(), options);
+                    res = interpreter.execute();
+                }
+                else {
+                    InterpreterSelectWithUnionQuery interpreter(ast.getExplainedQuery(), getContext(), options);
+                    res = interpreter.execute();
+                }
+
+                auto & pipeline = res.pipeline;
+                const auto & processors = pipeline.getProcessors();
+
+                PullingPipelineExecutor pulling_executor(pipeline, true);
+                std::vector<Block> blocks;
+                while(true) {
+                    Block block;
+                    // TODO: Simply check return value to avoid accumulating blocks
+                    if(pulling_executor.pull(block))
+                        blocks.push_back(std::move(block));
+                    else
+                        break;
+                }
+                printPipeline(processors, std::vector<IProcessor::Status>(), buf, true);
+            }
         }
     }
     if (insert_buf)
