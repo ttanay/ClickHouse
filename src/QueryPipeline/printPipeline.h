@@ -11,7 +11,7 @@ namespace DB
   *  dot -T png < pipeline.dot > pipeline.png
   */
 template <typename Processors, typename Statuses>
-void printPipeline(const Processors & processors, const Statuses & statuses, WriteBuffer & out)
+void printPipeline(const Processors & processors, const Statuses & statuses, WriteBuffer & out, bool print_stats)
 {
     out << "digraph\n{\n";
     out << "  rankdir=\"LR\";\n";
@@ -31,6 +31,12 @@ void printPipeline(const Processors & processors, const Statuses & statuses, Wri
     {
         const auto & description = processor->getDescription();
         out << "    n" << get_proc_id(*processor) << "[label=\"" << processor->getName() << (description.empty() ? "" : ":") << description;
+
+        if(print_stats) {
+            out << "\nelapsed=" << processor->getElapsedNs();
+            out << "\ninput_wait=" << processor->getInputWaitElapsedNs();
+            out << "\noutout_wait=" << processor->getOutputWaitElapsedNs();
+        }
 
         if (statuses_iter != statuses.end())
         {
@@ -60,12 +66,16 @@ void printPipeline(const Processors & processors, const Statuses & statuses, Wri
     out << "}\n";
 }
 
+template <typename Processors, typename Statuses>
+void printPipeline(const Processors & processors, const Statuses & statuses, WriteBuffer & out) {
+    printPipeline(processors, statuses, out, false);
+}
+
 template <typename Processors>
 void printPipeline(const Processors & processors, WriteBuffer & out)
 {
     printPipeline(processors, std::vector<IProcessor::Status>(), out);
 }
-
 /// Prints pipeline in compact representation.
 /// Group processors by it's name, QueryPlanStep and QueryPlanStepGroup.
 /// If QueryPlanStep wasn't set for processor, representation may be not correct.
