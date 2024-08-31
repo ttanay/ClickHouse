@@ -33,9 +33,15 @@ void printPipeline(const Processors & processors, const Statuses & statuses, Wri
         out << "    n" << get_proc_id(*processor) << "[label=\"" << processor->getName() << (description.empty() ? "" : ":") << description;
 
         if(print_stats) {
-            out << "\nelapsed=" << processor->getElapsedNs();
-            out << "\ninput_wait=" << processor->getInputWaitElapsedNs();
-            out << "\noutout_wait=" << processor->getOutputWaitElapsedNs();
+            out << "\nelapsed(us)=" << processor->getElapsedNs() / 1000U;
+            out << "\ninput_wait(us)=" << processor->getInputWaitElapsedNs() / 1000U;
+            out << "\noutout_wait(us)=" << processor->getOutputWaitElapsedNs() / 1000U;
+
+            auto stats = processor->getProcessorDataStats();
+            out << "\ninput_rows=" << stats.input_rows;
+            out << "\noutput_rows="<< stats.output_rows;
+            out << "\ninput_bytes="<< stats.input_bytes;
+            out << "\noutput_bytes=" << stats.output_bytes;
         }
 
         if (statuses_iter != statuses.end())
