@@ -1,3 +1,4 @@
+#include <functional>
 #include <Interpreters/InterpreterFactory.h>
 #include <Interpreters/InterpreterExplainQuery.h>
 
@@ -231,6 +232,29 @@ struct QueryPipelineSettings
             {"header", query_pipeline_options.header},
             {"graph", graph},
             {"compact", compact},
+    };
+
+    std::unordered_map<std::string, std::reference_wrapper<Int64>> integer_settings;
+};
+
+// Text mode:
+// 1. Summarized statistics
+// 2. Detailed Statistics
+//
+// Graph mode:
+// 1. Detailed Statistics
+// 2. Summarized Statistics
+struct ExecutionAnalysisSettings
+{
+    bool graph = false;
+    bool compact = false;
+
+    constexpr static char name[] = "ANALYZE";
+
+    std::unordered_map<std::string, std::reference_wrapper<bool>> boolean_settings =
+    {
+        {"graph", graph},
+        {"compact", compact},
     };
 
     std::unordered_map<std::string, std::reference_wrapper<Int64>> integer_settings;
@@ -617,6 +641,8 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
         case ASTExplainQuery::ExecutionAnalysis:
         {
             if(dynamic_cast<const ASTSelectWithUnionQuery *>(ast.getExplainedQuery().get())) {
+                auto settings = checkAndGetSettings<ExecutionAnalysisSettings>(ast.getSettings());
+
                 BlockIO res;
                 //Build Query Plan
                 if(getContext()->getSettingsRef().allow_experimental_analyzer)
@@ -642,8 +668,15 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                     else
                         break;
                 }
-                printPipeline(processors, std::vector<IProcessor::Status>(), buf, true);
+
+                if(settings.graph) {
+                    printPipeline(processors, std::vector<IProcessor::Status>(), buf, true);
+                }
+                else
+                    throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Normal mode is not supported yet");
             }
+            else
+                throw Exception(ErrorCodes::INCORRECT_QUERY, "Only SELECT is supposed for EXPLAIN ANALYZE query");
         }
     }
     if (insert_buf)
