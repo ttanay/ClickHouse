@@ -95,6 +95,7 @@ public:
         const size_t indent = 2;
         const char indent_char = ' ';
         const bool write_header = false;
+        const bool compact = true;
     };
 
     /// Get detailed description of step actions. This is shown in EXPLAIN query with options `actions = 1`.

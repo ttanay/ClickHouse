@@ -223,7 +223,7 @@ struct QueryPipelineSettings
 {
     QueryPlan::ExplainPipelineOptions query_pipeline_options;
     bool graph = false;
-    bool compact = true;
+    bool compact = query_pipeline_options.compact;
 
     constexpr static char name[] = "PIPELINE";
 
@@ -246,8 +246,9 @@ struct QueryPipelineSettings
 // 2. Summarized Statistics
 struct ExecutionAnalysisSettings
 {
+    QueryPlan::ExplainPipelineOptions query_pipeline_options;
     bool graph = false;
-    bool compact = false;
+    bool compact = true;
 
     constexpr static char name[] = "ANALYZE";
 
@@ -642,8 +643,9 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
         {
             if(dynamic_cast<const ASTSelectWithUnionQuery *>(ast.getExplainedQuery().get())) {
                 auto settings = checkAndGetSettings<ExecutionAnalysisSettings>(ast.getSettings());
-
+                QueryPlan plan;
                 BlockIO res;
+
                 //Build Query Plan
                 if(getContext()->getSettingsRef().allow_experimental_analyzer)
                 {
@@ -670,10 +672,19 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                 }
 
                 if(settings.graph) {
+                    if(!settings.compact) {
+                        throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Compact mode for graph is not supported yet");
+                    }
+
                     printPipeline(processors, std::vector<IProcessor::Status>(), buf, true);
                 }
-                else
-                    throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Normal mode is not supported yet");
+                else {
+                    if(!settings.compact) {
+                        throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Verbose mode is not supported yet");
+                    }
+
+                    plan.explainPipeline(buf, settings.query_pipeline_options);
+                }
             }
             else
                 throw Exception(ErrorCodes::INCORRECT_QUERY, "Only SELECT is supposed for EXPLAIN ANALYZE query");

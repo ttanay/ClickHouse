@@ -52,6 +52,8 @@ static void doDescribeHeader(const Block & header, size_t count, IQueryPlanStep:
     }
 }
 
+// The statistics can be added here by either specifying aggregators for different statistics
+// Or having them laid out bare when comapct=false
 static void doDescribeProcessor(const IProcessor & processor, size_t count, IQueryPlanStep::FormatSettings & settings)
 {
     settings.out << String(settings.offset, settings.indent_char) << processor.getName();
@@ -89,28 +91,56 @@ static void doDescribeProcessor(const IProcessor & processor, size_t count, IQue
     if (!processor.getDescription().empty())
         settings.out << String(settings.offset, settings.indent_char) << "Description: " << processor.getDescription() << '\n';
 
-    settings.offset += settings.indent;
+    //settings.offset += settings.indent;
 }
 
 void IQueryPlanStep::describePipeline(const Processors & processors, FormatSettings & settings)
 {
-    const IProcessor * prev = nullptr;
-    size_t count = 0;
 
-    for (auto it = processors.rbegin(); it != processors.rend(); ++it)
-    {
-        if (prev && prev->getName() != (*it)->getName())
+    if(settings.compact) {
+        const IProcessor * prev = nullptr;
+        size_t count = 0;
+
+        for (auto it = processors.rbegin(); it != processors.rend(); ++it)
         {
-            doDescribeProcessor(*prev, count, settings);
-            count = 0;
+            if (prev && prev->getName() != (*it)->getName())
+            {
+                doDescribeProcessor(*prev, count, settings);
+                settings.offset += settings.indent;
+                count = 0;
+            }
+
+            ++count;
+            prev = it->get();
         }
 
-        ++count;
-        prev = it->get();
+        if (prev) {
+            doDescribeProcessor(*prev, count, settings);
+            settings.offset += settings.indent;
+        }
     }
+    else {
+        // TODO: This needs to manage the nesting based on the name of the
+        // last processor as is done in the compact implementation
+        // It also needs to send down a proper count so that it can be displayed
+        // accurately for the processor
+        //
+        //  TODO: THe order also needs to be reverse order
 
-    if (prev)
-        doDescribeProcessor(*prev, count, settings);
+        const IProcessor * prev = nullptr;
+        // size_t count = 0;
+        for(auto it = processors.rbegin(); it != processors.rend(); ++it)
+        {
+            if(prev && prev->getName() != (*it)->getName())
+                settings.offset += settings.indent;
+            doDescribeProcessor(**it, 1, settings);
+            prev = it->get();
+        }
+
+
+       if(prev)
+           settings.offset += settings.indent;
+    }
 }
 
 void IQueryPlanStep::appendExtraProcessors(const Processors & extra_processors)
