@@ -221,7 +221,7 @@ struct QueryPipelineSettings
 {
     QueryPlan::ExplainPipelineOptions query_pipeline_options;
     bool graph = false;
-    bool compact = true;
+    bool compact = query_pipeline_options.compact;
 
     constexpr static char name[] = "PIPELINE";
 

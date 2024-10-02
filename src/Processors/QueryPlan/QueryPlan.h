@@ -78,6 +78,7 @@ public:
     {
         /// Show header of output ports.
         bool header = false;
+        bool compact = true;
     };
 
     JSONBuilder::ItemPtr explainPlan(const ExplainPlanOptions & options);
