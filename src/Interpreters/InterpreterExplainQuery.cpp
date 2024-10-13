@@ -670,7 +670,7 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                 }
 
                 if(settings.graph) {
-                    printPipeline(processors, std::vector<IProcessor::Status>(), buf, true);
+                    printExecutionAnalysis(processors, buf);
                 }
                 else
                     throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Normal mode is not supported yet");
