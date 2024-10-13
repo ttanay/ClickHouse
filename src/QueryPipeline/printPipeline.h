@@ -11,7 +11,7 @@ namespace DB
   *  dot -T png < pipeline.dot > pipeline.png
   */
 template <typename Processors, typename Statuses>
-void printPipeline(const Processors & processors, const Statuses & statuses, WriteBuffer & out, bool print_stats)
+void printPipeline(const Processors & processors, const Statuses & statuses, WriteBuffer & out)
 {
     out << "digraph\n{\n";
     out << "  rankdir=\"LR\";\n";
@@ -31,18 +31,6 @@ void printPipeline(const Processors & processors, const Statuses & statuses, Wri
     {
         const auto & description = processor->getDescription();
         out << "    n" << get_proc_id(*processor) << "[label=\"" << processor->getName() << (description.empty() ? "" : ":") << description;
-
-        if(print_stats) {
-            out << "\nelapsed(us)=" << processor->getElapsedNs() / 1000U;
-            out << "\ninput_wait(us)=" << processor->getInputWaitElapsedNs() / 1000U;
-            out << "\noutout_wait(us)=" << processor->getOutputWaitElapsedNs() / 1000U;
-
-            auto stats = processor->getProcessorDataStats();
-            out << "\ninput_rows=" << stats.input_rows;
-            out << "\noutput_rows="<< stats.output_rows;
-            out << "\ninput_bytes="<< stats.input_bytes;
-            out << "\noutput_bytes=" << stats.output_bytes;
-        }
 
         if (statuses_iter != statuses.end())
         {
@@ -70,11 +58,6 @@ void printPipeline(const Processors & processors, const Statuses & statuses, Wri
         }
     }
     out << "}\n";
-}
-
-template <typename Processors, typename Statuses>
-void printPipeline(const Processors & processors, const Statuses & statuses, WriteBuffer & out) {
-    printPipeline(processors, statuses, out, false);
 }
 
 template <typename Processors>
