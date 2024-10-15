@@ -71,7 +71,9 @@ PipelineExecutor::PipelineExecutor(std::shared_ptr<Processors> & processors, Que
     }
 }
 
-PipelineExecutor::PipelineExecutor(std::shared_ptr<Processors> & processors, QueryStatusPtr elem, bool profile_processors_): PipelineExecutor(processors, elem) {
+PipelineExecutor::PipelineExecutor(std::shared_ptr<Processors> & processors, QueryStatusPtr elem, bool profile_processors_)
+    : PipelineExecutor(processors, elem)
+{
     profile_processors = profile_processors || profile_processors_;
 }
 

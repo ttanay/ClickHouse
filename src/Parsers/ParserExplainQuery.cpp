@@ -47,7 +47,7 @@ bool ParserExplainQuery::parseImpl(Pos & pos, ASTPtr & node, Expected & expected
             kind = ASTExplainQuery::ExplainKind::TableOverride;
         else if (s_current_transaction.ignore(pos, expected))
             kind = ASTExplainQuery::ExplainKind::CurrentTransaction;
-        else if(s_analyze.ignore(pos, expected))
+        else if (s_analyze.ignore(pos, expected))
             kind = ASTExplainQuery::ExplainKind::ExecutionAnalysis;
     }
     else

@@ -174,7 +174,8 @@ void printPipelineCompact(const Processors & processors, WriteBuffer & out, bool
     out << "}\n";
 }
 
-void printExecutionAnalysis(const Processors & processors, WriteBuffer & out) {
+void printExecutionAnalysis(const Processors & processors, WriteBuffer & out)
+{
     out << "digraph\n";
     out << "{\n";
     out << "    rankdir=\"LR\";\n";
@@ -188,7 +189,8 @@ void printExecutionAnalysis(const Processors & processors, WriteBuffer & out) {
     };
 
 
-    for(const auto & processor : processors) {
+    for (const auto & processor : processors)
+    {
         const auto & description = processor->getDescription();
         out << "        n" << get_proc_id(*processor) << "[label=<\n";
         out << "            <table border=\"0\" cellborder=\"1\" cellspacing=\"0\">\n";
@@ -196,9 +198,10 @@ void printExecutionAnalysis(const Processors & processors, WriteBuffer & out) {
         out << "                <tr>\n";
         out << "                    <td>\n";
         out << "                        <table border=\"0\" cellborder=\"0\" cellspacing=\"0\">\n";
-        out << "                            <tr><td>Input wait time(us): " << processor->getInputWaitElapsedNs() / 1000U  << "</td></tr>\n";
+        out << "                            <tr><td>Input wait time(us): " << processor->getInputWaitElapsedNs() / 1000U << "</td></tr>\n";
         out << "                            <tr><td>Execution time(us): " << processor->getElapsedNs() / 1000U << "</td></tr>\n";
-        out << "                            <tr><td>Output wait time(us): " << processor->getOutputWaitElapsedNs() / 1000U << "</td></tr>\n";
+        out << "                            <tr><td>Output wait time(us): " << processor->getOutputWaitElapsedNs() / 1000U
+            << "</td></tr>\n";
         out << "                        </table>\n";
         out << "                    </td>\n";
         out << "                </tr>\n";
@@ -220,7 +223,8 @@ void printExecutionAnalysis(const Processors & processors, WriteBuffer & out) {
             const IProcessor & next = port.getInputPort().getProcessor();
             const auto curr_stats = curr.getProcessorDataStats();
 
-            out << "  n" << get_proc_id(curr) << " -> n" << get_proc_id(next) << " [label=\"" << curr_stats.output_rows << " rows\n " << curr_stats.output_bytes << " bytes\"];\n";
+            out << "  n" << get_proc_id(curr) << " -> n" << get_proc_id(next) << " [label=\"" << curr_stats.output_rows << " rows\n "
+                << curr_stats.output_bytes << " bytes\"];\n";
         }
     }
     out << "}\n";

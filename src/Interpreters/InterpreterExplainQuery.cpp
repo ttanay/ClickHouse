@@ -245,8 +245,7 @@ struct ExecutionAnalysisSettings
 
     constexpr static char name[] = "ANALYZE";
 
-    std::unordered_map<std::string, std::reference_wrapper<bool>> boolean_settings =
-    {
+    std::unordered_map<std::string, std::reference_wrapper<bool>> boolean_settings = {
         {"graph", graph},
     };
 
@@ -631,19 +630,20 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
 
             break;
         }
-        case ASTExplainQuery::ExecutionAnalysis:
-        {
-            if(dynamic_cast<const ASTSelectWithUnionQuery *>(ast.getExplainedQuery().get())) {
+        case ASTExplainQuery::ExecutionAnalysis: {
+            if (dynamic_cast<const ASTSelectWithUnionQuery *>(ast.getExplainedQuery().get()))
+            {
                 auto settings = checkAndGetSettings<ExecutionAnalysisSettings>(ast.getSettings());
 
                 BlockIO res;
                 //Build Query Plan
-                if(getContext()->getSettingsRef().allow_experimental_analyzer)
+                if (getContext()->getSettingsRef().allow_experimental_analyzer)
                 {
                     InterpreterSelectQueryAnalyzer interpreter(ast.getExplainedQuery(), getContext(), options);
                     res = interpreter.execute();
                 }
-                else {
+                else
+                {
                     InterpreterSelectWithUnionQuery interpreter(ast.getExplainedQuery(), getContext(), options);
                     res = interpreter.execute();
                 }
@@ -652,13 +652,15 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                 const auto & processors = pipeline.getProcessors();
 
                 PullingPipelineExecutor pulling_executor(pipeline, true);
-                while(true) {
+                while (true)
+                {
                     Block block;
-                    if(!pulling_executor.pull(block))
+                    if (!pulling_executor.pull(block))
                         break;
                 }
 
-                if(settings.graph) {
+                if (settings.graph)
+                {
                     printExecutionAnalysis(processors, buf);
                 }
                 else
