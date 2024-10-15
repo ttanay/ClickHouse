@@ -637,7 +637,7 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
 
                 BlockIO res;
                 //Build Query Plan
-                if (getContext()->getSettingsRef().allow_experimental_analyzer)
+                if (getContext()->getSettingsRef()[Setting::allow_experimental_analyzer])
                 {
                     InterpreterSelectQueryAnalyzer interpreter(ast.getExplainedQuery(), getContext(), options);
                     res = interpreter.execute();
