@@ -6,7 +6,6 @@
 namespace DB
 {
 
-
 void printPipelineCompact(const Processors & processors, WriteBuffer & out, bool with_header)
 {
     struct Node;

@@ -237,24 +237,15 @@ struct QueryPipelineSettings
     std::unordered_map<std::string, std::reference_wrapper<Int64>> integer_settings;
 };
 
-// Text mode:
-// 1. Summarized statistics
-// 2. Detailed Statistics
-//
-// Graph mode:
-// 1. Detailed Statistics
-// 2. Summarized Statistics
 struct ExecutionAnalysisSettings
 {
     bool graph = false;
-    bool compact = false;
 
     constexpr static char name[] = "ANALYZE";
 
     std::unordered_map<std::string, std::reference_wrapper<bool>> boolean_settings =
     {
         {"graph", graph},
-        {"compact", compact},
     };
 
     std::unordered_map<std::string, std::reference_wrapper<Int64>> integer_settings;
@@ -673,7 +664,7 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                     printExecutionAnalysis(processors, buf);
                 }
                 else
-                    throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Normal mode is not supported yet");
+                    throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Text mode is not supported yet");
             }
             else
                 throw Exception(ErrorCodes::INCORRECT_QUERY, "Only SELECT is supposed for EXPLAIN ANALYZE query");
