@@ -650,13 +650,9 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                 const auto & processors = pipeline.getProcessors();
 
                 PullingPipelineExecutor pulling_executor(pipeline, true);
-                std::vector<Block> blocks;
                 while(true) {
                     Block block;
-                    // TODO: Simply check return value to avoid accumulating blocks
-                    if(pulling_executor.pull(block))
-                        blocks.push_back(std::move(block));
-                    else
+                    if(!pulling_executor.pull(block))
                         break;
                 }
 
