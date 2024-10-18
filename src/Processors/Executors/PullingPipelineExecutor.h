@@ -56,7 +56,6 @@ private:
     PipelineExecutorPtr executor;
 
     // Used for EXPLAIN ANALYZE
-    // TODO: Refactor to make it applicable to all Pipeline types
     bool profile_processors = false;
 };
 
