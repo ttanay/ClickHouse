@@ -651,6 +651,7 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                 auto & pipeline = res.pipeline;
                 const auto & processors = pipeline.getProcessors();
 
+                Stopwatch elapsed_ns;
                 PullingPipelineExecutor pulling_executor(pipeline, true);
                 while (true)
                 {
@@ -658,10 +659,11 @@ QueryPipeline InterpreterExplainQuery::executeImpl()
                     if (!pulling_executor.pull(block))
                         break;
                 }
+                elapsed_ns.stop();
 
                 if (settings.graph)
                 {
-                    printExecutionAnalysis(processors, buf);
+                    printExecutionAnalysis(processors, buf, elapsed_ns.elapsedMicroseconds());
                 }
                 else
                     throw Exception(ErrorCodes::NOT_IMPLEMENTED, "Text mode is not supported yet");

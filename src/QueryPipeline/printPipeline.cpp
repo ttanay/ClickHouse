@@ -174,7 +174,7 @@ void printPipelineCompact(const Processors & processors, WriteBuffer & out, bool
     out << "}\n";
 }
 
-void printExecutionAnalysis(const Processors & processors, WriteBuffer & out)
+void printExecutionAnalysis(const Processors & processors, WriteBuffer & out, UInt64 elapsed_us)
 {
     out << "digraph\n";
     out << "{\n";
@@ -192,16 +192,25 @@ void printExecutionAnalysis(const Processors & processors, WriteBuffer & out)
     for (const auto & processor : processors)
     {
         const auto & description = processor->getDescription();
+        const auto input_wait_time_us = processor->getInputWaitElapsedNs() / 1000U;
+        const auto input_wait_time_percentage = input_wait_time_us * 100 / elapsed_us;
+        const auto execution_time_us = processor->getElapsedNs() / 1000U;
+        const auto execution_time_percentage = execution_time_us * 100 / elapsed_us;
+        const auto output_wait_time_us = processor->getOutputWaitElapsedNs() / 1000U;
+        const auto output_wait_time_percentage = output_wait_time_us * 100 / elapsed_us;
+
         out << "        n" << get_proc_id(*processor) << "[label=<\n";
         out << "            <table border=\"0\" cellborder=\"1\" cellspacing=\"0\">\n";
         out << "                <tr><td>" << processor->getName() << (description.empty() ? "" : ":") << description << "</td></tr>\n";
         out << "                <tr>\n";
         out << "                    <td>\n";
         out << "                        <table border=\"0\" cellborder=\"0\" cellspacing=\"0\">\n";
-        out << "                            <tr><td>Input wait time(us): " << processor->getInputWaitElapsedNs() / 1000U << "</td></tr>\n";
-        out << "                            <tr><td>Execution time(us): " << processor->getElapsedNs() / 1000U << "</td></tr>\n";
-        out << "                            <tr><td>Output wait time(us): " << processor->getOutputWaitElapsedNs() / 1000U
-            << "</td></tr>\n";
+        out << "                            <tr><td>Input wait time(us): " << input_wait_time_us << " us</td></tr>\n";
+        out << "                            <tr><td>Input wait time(%): " << input_wait_time_percentage << "%</td></tr>\n";
+        out << "                            <tr><td>Execution time(us): " << execution_time_us << " us</td></tr>\n";
+        out << "                            <tr><td>Execution time(%): " << execution_time_percentage << "%</td></tr>\n";
+        out << "                            <tr><td>Output wait time(us): " << output_wait_time_us << " us</td></tr>\n";
+        out << "                            <tr><td>Output wait time(%): " << output_wait_time_percentage << "%</td></tr>\n";
         out << "                        </table>\n";
         out << "                    </td>\n";
         out << "                </tr>\n";

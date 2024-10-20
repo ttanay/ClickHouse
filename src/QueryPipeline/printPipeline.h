@@ -72,5 +72,5 @@ void printPipeline(const Processors & processors, WriteBuffer & out)
 void printPipelineCompact(const Processors & processors, WriteBuffer & out, bool with_header);
 
 // Prints the execution analysis in graph Format
-void printExecutionAnalysis(const Processors & processors, WriteBuffer & out);
+void printExecutionAnalysis(const Processors & processors, WriteBuffer & out, UInt64 elapsed_us);
 }
